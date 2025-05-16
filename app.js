@@ -6,7 +6,7 @@ import { User } from "./model/user.model.js";
 import jwt from "jsonwebtoken";
 
 const app = express();
-app.use(express.json())
+app.use(express.json());
 dotenv.config();
 
 app.get("/", (req, res) => {
@@ -53,5 +53,31 @@ app.post("/api/users/register", async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+app.post("/api/users/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "invalid email" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "invalid password" });
+
+    const token = jwt.sign({ id: user._id, role: user.role } , process.env.JWT_SECRET, {expiresIn: '7d'});
+
+    const { password: _, ...userInfo } = user.toObject();
+
+    res.status(200).json({
+      message: "login success",
+      token,
+      user: userInfo,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: error.message });
   }
 });
