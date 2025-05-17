@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import { User } from "./model/user.model.js";
 import jwt from "jsonwebtoken";
+import { Protect } from "./middleware/auth.middleware.js";
 
 const app = express();
 app.use(express.json());
@@ -81,3 +82,11 @@ app.post("/api/users/login", async (req, res) => {
       .json({ message: error.message });
   }
 });
+
+app.get('/api/users/me', Protect, async (req, res) => {
+  try {
+    res.status(200).json(req.user)
+  } catch (error) {
+    res.status(500).json({message: 'server error'})
+  }
+})
