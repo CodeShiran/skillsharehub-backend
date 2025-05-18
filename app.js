@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { User } from "./model/user.model.js";
 import jwt from "jsonwebtoken";
 import { Protect } from "./middleware/auth.middleware.js";
+import { SkillSession } from "./model/skillSession.model.js";
 
 const app = express();
 app.use(express.json());
@@ -67,7 +68,11 @@ app.post("/api/users/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "invalid password" });
 
-    const token = jwt.sign({ id: user._id, role: user.role } , process.env.JWT_SECRET, {expiresIn: '7d'});
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     const { password: _, ...userInfo } = user.toObject();
 
@@ -77,44 +82,75 @@ app.post("/api/users/login", async (req, res) => {
       user: userInfo,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
-app.get('/api/users/me', Protect, async (req, res) => {
+app.get("/api/users/me", Protect, async (req, res) => {
   try {
-    res.status(200).json(req.user)
+    res.status(200).json(req.user);
   } catch (error) {
-    res.status(500).json({message: 'server error'})
+    res.status(500).json({ message: "server error" });
   }
-})
+});
 
-app.put('/api/users/me', Protect, async (req, res) => {
+app.put("/api/users/me", Protect, async (req, res) => {
   try {
+    const user = await User.findById(req.user._id);
 
-    const user = await User.findById(req.user._id)
+    if (!user) return res.status(404).json({ message: "user not found" });
 
-    if(!user) return res.status(404).json({message: 'user not found'})
+    user.name = req.body.name || user.name;
+    user.email = req.body.email || user.email;
 
-    user.name = req.body.name || user.name
-    user.email = req.body.email || user.email
-
-    if(req.body.password) {
-      const salt = await bcrypt.genSalt(10)
-      user.password = await bcrypt.hash(req.body.password, salt)
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(req.body.password, salt);
     }
 
-    const updatedUser = await user.save()
-    const {password, ...userWithoutPassword } = updatedUser._doc 
+    const updatedUser = await user.save();
+    const { password, ...userWithoutPassword } = updatedUser._doc;
     res.status(200).json({
-      message: 'successfully updated the user',
-      data: userWithoutPassword
-    })
-    
+      message: "successfully updated the user",
+      data: userWithoutPassword,
+    });
   } catch (error) {
-    console.error(error)
-    res.status(500).json({message: 'server error'})
+    console.error(error);
+    res.status(500).json({ message: "server error" });
   }
-})
+});
+
+app.post("/api/sessions", Protect, async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (user.role !== "instructor")
+      return res
+        .status(403)
+        .json({ message: "you are not authorized to create a new session" });
+
+    const { title, description, category, date } =
+      req.body;
+
+    if (!title || !description || !category)
+      return res.status(400).json({ message: "required feilds are missing" });
+
+    const session = new SkillSession({
+      title,
+      description,
+      category,
+      date,
+      instructor: user._id,
+      bookings: [],
+    });
+
+    await session.save();
+
+    res
+      .status(201)
+      .json({ message: "session created successfully", data: session });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "server error" });
+  }
+});
