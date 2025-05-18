@@ -90,3 +90,31 @@ app.get('/api/users/me', Protect, async (req, res) => {
     res.status(500).json({message: 'server error'})
   }
 })
+
+app.put('/api/users/me', Protect, async (req, res) => {
+  try {
+
+    const user = await User.findById(req.user._id)
+
+    if(!user) return res.status(404).json({message: 'user not found'})
+
+    user.name = req.body.name || user.name
+    user.email = req.body.email || user.email
+
+    if(req.body.password) {
+      const salt = await bcrypt.genSalt(10)
+      user.password = await bcrypt.hash(req.body.password, salt)
+    }
+
+    const updatedUser = await user.save()
+    const {password, ...userWithoutPassword } = updatedUser._doc 
+    res.status(200).json({
+      message: 'successfully updated the user',
+      data: userWithoutPassword
+    })
+    
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({message: 'server error'})
+  }
+})
