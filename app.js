@@ -171,3 +171,25 @@ app.get('/api/sessions', Protect, async(req, res) => {
   }
 
 })
+
+app.get('/api/sessions/:id', Protect, async(req, res) => {
+  try {
+    const {id} = req.params
+
+  const session = await SkillSession.findById(id)
+  .populate('instructor', 'name email')
+
+  if(!session) return res.status(404).json({message: 'session not found'})
+
+  res.status(200).json(session)
+  } catch (error) {
+    console.error(error)
+
+    if(error.kind === 'objectId') {
+      return res.status(400).json({message: 'invalid session id'})
+    }
+
+    res.status(500).json({message: 'server not found'})
+  }
+})
+
