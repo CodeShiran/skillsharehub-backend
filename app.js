@@ -154,3 +154,20 @@ app.post("/api/sessions", Protect, async (req, res) => {
     res.status(500).json({ message: "server error" });
   }
 });
+
+
+app.get('/api/sessions', Protect, async(req, res) => {
+  
+  try {
+    const session = await SkillSession.find()
+    .populate('instructor', 'name email')
+    .sort({date: 1})
+
+    res.status(200).json(session)
+    
+  } catch (error) {
+    console.error(error)
+    res.status(401).json({message: 'server error'})
+  }
+
+})
