@@ -172,6 +172,31 @@ app.get('/api/sessions', Protect, async(req, res) => {
 
 })
 
+
+app.get('/api/sessions/me', Protect, async(req, res) => {
+  try {
+    const userId = req.user._id
+    const role = req.user.role
+
+    let session
+
+    if(role === 'instructor') {
+      session = await SkillSession.find({instructor: userId}).populate('instructor', 'name email')
+    }
+    else {
+      session = await SkillSession.find({bookings: userId}).populate('instructor','name email')
+    }
+
+    res.status(200).json({session})
+    
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({message: 'server error'})
+  }
+})
+
+
+
 app.get('/api/sessions/:id', Protect, async(req, res) => {
   try {
     const {id} = req.params
