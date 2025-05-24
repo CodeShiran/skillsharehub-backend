@@ -245,3 +245,28 @@ app.put('/api/sessions/:id', Protect, async(req, res) => {
   }
 })
 
+app.delete('/api/sessions/:id', Protect, async(req, res) => {
+  try {
+    const sessionId = req.params.id
+
+    if(req.user.role !== 'instructor') return res.status(403).json({message: 'only instructor can update session'})
+
+    const session = await SkillSession.findById(sessionId)
+
+    if(!session) return res.status(403).json({message: 'session not found'})
+
+    if(session.instructor.toString() !== req.user.id.toString()) return res.status(403).json({message: 'you are not authorized to delete this session'})
+
+    await session.deleteOne()
+
+    res.status(200).json({message: 'session deleted successfully'})
+
+    
+  } catch (error) {
+    console.error(error)
+
+    res.status(500).json({message: 'server error'})
+  }
+})
+
+
