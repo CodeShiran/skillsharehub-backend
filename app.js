@@ -218,3 +218,30 @@ app.get('/api/sessions/:id', Protect, async(req, res) => {
   }
 })
 
+app.put('/api/sessions/:id', Protect, async(req, res) => {
+  try {
+    const sessionId = req.params.id
+
+  if(req.user.role !== 'instructor') return res.status(403).json({message: 'only instructors can update sessions'})
+
+  const session = await SkillSession.findById(sessionId)
+
+  if(!session) return res.send(404).json({message: 'session not found'})
+
+  if(session.instructor.toString() !== req.user.id.toString()) return res.status(403).json({message: 'you are not authorized to update this session'})
+
+  const feildsToUpdate = ['title', 'description', 'category', 'date']
+
+  feildsToUpdate.forEach(feild => {
+    if(req.body[feild] !== undefined) session[feild] = req.body[feild] 
+  })
+
+  const updatedSession = await session.save()
+
+  res.status(200).json(updatedSession)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({message: 'server errror'})
+  }
+})
+
