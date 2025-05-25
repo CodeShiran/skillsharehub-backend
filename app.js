@@ -269,4 +269,29 @@ app.delete('/api/sessions/:id', Protect, async(req, res) => {
   }
 })
 
+app.post('/api/booking/:sessionId', Protect, async(req, res) => {
+  try {
+
+    if(req.user.role !== 'learner') return res.status(403).json({message: 'only users can create bookings'})
+
+    const {sessionId} = req.params
+
+    const session = await SkillSession.findById(sessionId)
+
+    if(!session) return res.status(404).json({message: 'session not found'})
+
+    const alreadyBooked = session.bookings.includes(req.user._id)
+    if(alreadyBooked) return res.status(400).json({message: 'user has already booked the session'})
+
+    session.bookings.push(req.user._id)
+    await session.save()
+
+    res.status(201).json({message: 'booking created successfully'})
+    
+  } catch (error) {
+    console.error(error)
+    res.status(200).json({message: 'server error'})
+  }
+})
+
 
