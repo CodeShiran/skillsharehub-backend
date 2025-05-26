@@ -6,6 +6,7 @@ import { User } from "./model/user.model.js";
 import jwt from "jsonwebtoken";
 import { Protect } from "./middleware/auth.middleware.js";
 import { SkillSession } from "./model/skillSession.model.js";
+import { Booking } from "./model/booking.model.js";
 
 const app = express();
 app.use(express.json());
@@ -290,7 +291,22 @@ app.post('/api/booking/:sessionId', Protect, async(req, res) => {
     
   } catch (error) {
     console.error(error)
-    res.status(200).json({message: 'server error'})
+    res.status(500).json({message: 'server error'})
+  }
+})
+
+app.get('/api/booking', Protect, async(req, res) => {
+  try {
+    if(req.user.role !== 'learner') return res.status(403).json({message: 'only learners can get users'})
+
+    const booking = await SkillSession.find({bookings: req.user._id})
+    .populate('instructor', 'name email');
+
+    res.status(200).json({booking})
+    
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({message: 'server error'})
   }
 })
 
